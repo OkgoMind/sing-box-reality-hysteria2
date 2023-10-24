@@ -641,6 +641,15 @@ cat << EOF
 EOF
 
 }
+
+#enable bbr
+enable_bbr() {
+    # temporary workaround for installing bbr
+    bash <(curl -L -s https://raw.githubusercontent.com/teddysun/across/master/bbr.sh)
+    echo ""
+}
+
+
 uninstall_singbox() {
             echo "Uninstalling..."
           # Stop and disable sing-box service
@@ -675,6 +684,7 @@ if [ -f "/root/sbox/sbconfig_server.json" ] && [ -f "/root/sbox/sing-box" ] && [
     echo "4. 卸载"
     echo "5. 更新sing-box内核"
     echo "6. 手动重启cloudflared（vps重启之后需要执行一次这个来更新vmess）"
+    echo "7. 一键开启bbr"
     echo ""
     read -p "Enter your choice (1-6): " choice
 
@@ -755,13 +765,17 @@ if [ -f "/root/sbox/sbconfig_server.json" ] && [ -f "/root/sbox/sing-box" ] && [
               systemctl restart sing-box
           fi
           echo ""  
-          exit 1
+          exit 0
           ;;
       6)
           regenarte_cloudflared_argo
           echo "重新启动完成，查看新的vmess客户端信息"
           show_client_configuration
-          exit 1
+          exit 0
+          ;;
+      7)
+          enable_bbr
+          exit 0
           ;;
       *)
           echo "Invalid choice. Exiting."
