@@ -10,7 +10,11 @@ print_with_delay() {
     done
     echo
 }
-#notice
+# 自定义字体彩色，read 函数
+red() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
+green() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
+yellow() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
+#信息提示
 show_notice() {
     local message="$1"
 
@@ -20,29 +24,37 @@ show_notice() {
     echo "                                                                                                                       "
     echo "#######################################################################################################################"
 }
-# Introduction animation
+
+# 作者介绍
 print_with_delay "sing-reality-hy2-wss-box by 绵阿羊" 0.05
 echo ""
 echo ""
-# install base
+
+# 安装依赖
 install_base(){
-  # Check if jq is installed, and install it if not
-  if ! command -v jq &> /dev/null; then
-      echo "jq is not installed. Installing..."
+  # 安装jq和qrencode
+  local packages=("jq" "qrencode")
+  for package in "${packages[@]}"; do
+    if ! command -v "$package" &> /dev/null; then
+      echo "正在安装 $package..."
       if [ -n "$(command -v apt)" ]; then
-          apt update > /dev/null 2>&1
-          apt install -y jq > /dev/null 2>&1
+        sudo apt update > /dev/null 2>&1
+        sudo apt install -y "$package" > /dev/null 2>&1
       elif [ -n "$(command -v yum)" ]; then
-          yum install -y epel-release
-          yum install -y jq
+        sudo yum install -y "$package"
       elif [ -n "$(command -v dnf)" ]; then
-          dnf install -y jq
+        sudo dnf install -y "$package"
       else
-          echo "Cannot install jq. Please install jq manually and rerun the script."
-          exit 1
+        echo "无法安装 $package。请手动安装，并重新运行脚本。"
+        exit 1
       fi
-  fi
+      echo "$package 已安装。"
+    else
+      echo "$package 已经安装。"
+    fi
+  done
 }
+
 # regenrate cloudflared argo
 regenarte_cloudflared_argo(){
   pid=$(pgrep -f cloudflared)
@@ -145,20 +157,28 @@ show_client_configuration() {
   short_id=$(jq -r '.inbounds[0].tls.reality.short_id[0]' /root/sbox/sbconfig_server.json)
   # Retrieve the server IP address
   server_ip=$(curl -s4m8 ip.sb -k) || server_ip=$(curl -s6m8 ip.sb -k)
+  server_link="vless://$uuid@$server_ip:$current_listen_port?encryption=none&flow=xtls-rprx-vision&security=reality&sni=$current_server_name&fp=chrome&pbk=$public_key&sid=$short_id&type=tcp&headerType=none#SING-BOX-REALITY"
   echo ""
   echo ""
-  show_notice "Reality 客户端通用链接" 
+  show_notice "$(red "Reality 通用链接和二维码和通用参数")" 
   echo ""
   echo ""
-  server_link="vless://$uuid@$server_ip:$current_listen_port?encryption=none&flow=xtls-rprx-vision&security=reality&sni=$current_server_name&fp=chrome&pbk=$public_key&sid=$short_id&type=tcp&headerType=none#SING-BOX-Reality"
-  echo ""
+  red "--------------------Reality 通用链接如下-------------------------------"
   echo ""
   echo "$server_link"
   echo ""
+  red "---------------------------------------------------------------------"
   echo ""
-  # Print the server details
-  show_notice "Reality 客户端通用参数" 
+  echo "" 
+  red "-------------------Reality 二维码-------------------------------------"
   echo ""
+  qrencode -t UTF8 $server_link
+  echo ""
+  red "---------------------------------------------------------------------"
+
+  echo ""
+  echo ""
+  red "-------------------Reality 客户端通用参数------------------------------"
   echo ""
   echo "服务器ip: $server_ip"
   echo "监听端口: $current_listen_port"
@@ -167,7 +187,10 @@ show_client_configuration() {
   echo "Public Key: $public_key"
   echo "Short ID: $short_id"
   echo ""
+  red "---------------------------------------------------------------------"
   echo ""
+  echo ""
+
   # Get current listen port
   hy_current_listen_port=$(jq -r '.inbounds[1].listen_port' /root/sbox/sbconfig_server.json)
   # Get current server name
@@ -178,68 +201,99 @@ show_client_configuration() {
   
   hy2_server_link="hysteria2://$hy_password@$server_ip:$hy_current_listen_port?insecure=1&sni=$hy_current_server_name"
 
-  show_notice "Hysteria2 客户端通用链接" 
   echo ""
-  echo "官方 hysteria2通用链接格式"
+  echo "" 
+  show_notice "$(green "Hysteria2 通用链接和二维码和通用参数")"
+  echo ""
+  echo "" 
+  green "---------------hysteria2 通用链接格式--------------------------"
   echo ""
   echo "$hy2_server_link"
   echo ""
-  echo ""   
-  # Print the server details
-  show_notice "Hysteria2 客户端通用参数" 
+  green "-------------------------------------------------------------"
+  echo "" 
   echo ""
+  green "---------------hysteria2 二维码-------------------------------"
+  echo ""
+  qrencode -t UTF8 $hy2_server_link  
+  echo ""
+  green "-------------------------------------------------------------"
   echo ""  
+  echo ""
+  green "-----------------Hysteria2 客户端通用参数-----------------------" 
+  echo "" 
   echo "服务器ip: $server_ip"
   echo "端口号: $hy_current_listen_port"
   echo "password: $hy_password"
   echo "域名SNI: $hy_current_server_name"
   echo "跳过证书验证: True"
   echo ""
+  green "--------------------------------------------------------------"
   echo ""
-  show_notice "Hysteria2 客户端yaml文件" 
+  echo ""
+  green "------------Hysteria2 官方内核yaml文件（可搭配v2rayN)-------------" 
 cat << EOF
 
 server: $server_ip:$hy_current_listen_port
-
 auth: $hy_password
-
 tls:
   sni: $hy_current_server_name
   insecure: true
-
 # 可自己修改对应带宽，不添加则默认为bbr，否则使用hy2的brutal拥塞控制
 # bandwidth:
 #   up: 100 mbps
 #   down: 100 mbps
-
 fastOpen: true
-
 socks5:
   listen: 127.0.0.1:50000
 
 EOF
-
+  green "----------------------------------------------------------------"
   argo=$(base64 --decode /root/sbox/argo.txt.b64)
   vmess_uuid=$(jq -r '.inbounds[2].users[0].uuid' /root/sbox/sbconfig_server.json)
   ws_path=$(jq -r '.inbounds[2].transport.path' /root/sbox/sbconfig_server.json)
-  show_notice "vmess ws 通用链接参数" 
+  
+  vmesswss_link='vmess://'$(echo '{"add":"speed.cloudflare.com","aid":"0","host":"'$argo'","id":"'$vmess_uuid'","net":"ws","path":"'$ws_path'","port":"443","ps":"sing-box-vmess-tls","tls":"tls","type":"none","v":"2"}' | base64 -w 0)
+  vmessws_link='vmess://'$(echo '{"add":"speed.cloudflare.com","aid":"0","host":"'$argo'","id":"'$vmess_uuid'","net":"ws","path":"'$ws_path'","port":"80","ps":"sing-box-vmess","tls":"","type":"none","v":"2"}' | base64 -w 0)
   echo ""
   echo ""
-  echo "以下为vmess链接，替换speed.cloudflare.com为自己的优选ip可获得极致体验"
+  show_notice "$(yellow "vmess ws(s) 通用链接和二维码")"
   echo ""
   echo ""
-  echo 'vmess://'$(echo '{"add":"speed.cloudflare.com","aid":"0","host":"'$argo'","id":"'$vmess_uuid'","net":"ws","path":"'$ws_path'","port":"443","ps":"sing-box-vmess-tls","tls":"tls","type":"none","v":"2"}' | base64 -w 0)
+  yellow "-----------以下为vmess wss链接，替换speed.cloudflare.com为自己的优选ip可获得极致体验------------"
   echo ""
+  echo "$vmesswss_link"
   echo ""
-  echo -e "端口 443 可改为 2053 2083 2087 2096 8443"
+  yellow "--------------------------------------------------------------------------------------"
   echo ""
+  yellow "-------------------vmess wss 二维码----------------------------------------------------"
   echo ""
-  echo 'vmess://'$(echo '{"add":"speed.cloudflare.com","aid":"0","host":"'$argo'","id":"'$vmess_uuid'","net":"ws","path":"'$ws_path'","port":"80","ps":"sing-box-vmess","tls":"","type":"none","v":"2"}' | base64 -w 0)
+  qrencode -t UTF8 $vmesswss_link
   echo ""
+  yellow "--------------------------------------------------------------------------------------"
   echo ""
-  echo -e "端口 80 可改为 8080 8880 2052 2082 2086 2095" 
+  red  "上述链接为wss 端口 443 可改为 2053 2083 2087 2096 8443"
   echo ""
+  yellow "------------------------------------------------------------------------------------"
   echo ""
+  yellow "-----------以下为vmess ws链接，替换speed.cloudflare.com为自己的优选ip可获得极致体验------------"
+  echo ""
+  echo "$vmessws_link"
+  echo ""
+  yellow "--------------------------------------------------------------------------------------"
+  echo ""
+  yellow "-------------------vmess ws 二维码----------------------------------------------------"
+  echo ""
+  qrencode -t UTF8 $vmessws_link
+  echo ""
+  yellow "--------------------------------------------------------------------------------------"
+  echo ""
+  red "上述链接为ws 端口 80 可改为 8080 8880 2052 2082 2086 2095" 
+  echo ""
+  yellow "------------------------------------------------------------------------------------"
+  echo ""
+
+
   show_notice "clash-meta配置参数"
 cat << EOF
 
