@@ -13,11 +13,9 @@ isIPv4=true #如果要测v6就改为false
 if [ "$isIPv4" = true ]; then
     ipfile="ip.txt"
     atype="A"
-    vtype="v4"
 else
     ipfile="ipv6.txt"
     atype="AAAA"
-    vtype="v6"
 fi
 
 arch=$(uname -m)
