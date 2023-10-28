@@ -22,7 +22,7 @@
 
 #### 最新版
 ```bash
-bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/reality_hy2_ws.sh)
+bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/beta.sh)
 ```
 #### 之前的版本
 ```bash
