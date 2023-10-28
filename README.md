@@ -1,11 +1,12 @@
 强烈建议开启bbr加速，可大幅加快节点reality和vmess节点的速度
+
 # 简介
 - Reality Hysteria2 vmess ws一键安装脚本
   
 ## 功能
 
 - 无脑回车一键安装或者自定义安装
-- 完全无需域名，使用自签证书部署hy2，使用cloudflared tunnel支持vmess ws优选ip
+- 完全无需域名，使用自签证书部署hy2，使用argo支持vmess ws优选ip（理论上比普通优选ip更快）
 - 支持修改reality端口号和域名，hysteria2端口号
 - 无脑生成sing-box，clash-meta，v2rayN，nekoray等通用链接格式
 
@@ -19,6 +20,11 @@
 
 ### reality和hysteria2 wss三合一脚本
 
+#### 最新版
+```bash
+bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/reality_hy2_ws.sh)
+```
+#### 之前的版本
 ```bash
 bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/reality_hy2_ws.sh)
 ```
@@ -35,6 +41,7 @@ bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/
 
 warp解锁v4 v6等操作自行使用warp-go脚本
 具体操作就不说了
+
 ```
 wget -N https://gitlab.com/fscarmen/warp/-/raw/main/warp-go.sh && bash warp-go.sh
 ```
