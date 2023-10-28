@@ -1,13 +1,22 @@
 #!/bin/bash
-# CF的优选ip
-API_KEY="xxxxx"
-API_EMAIL="xxxx@gmail.com"
-ZONE_ID="xxxxxxxxx"
-# 定义多个域名
-DOMAINS=("yx1.example.com" "yx2.example.com" "yx3.example.com")
-# 运行目录
-pdir="/root"
 
+#这些需要修改为自己的
+API_KEY="xxxxxxxx"
+API_EMAIL="xxx@gmail.com"
+ZONE_ID="xxxxxxxxxx"
+DOMAINS=("yx.piig.top" "yx1.piig.top" "yx2.piig.top")
+pdir="/root" # 替换为你的路径，如果此路径中存在/CF/CloudflareST文件，则默认CloudflareST已经下载，如果没有则会自动下载解压
+urltest="https://urltest.example.com" #替换为自己的测速地址，托管在cf上的测速网站
+isIPv4=true #如果v6就改为false
+
+# 根据isIPv4的值执行不同的命令
+if [ "$isIPv4" = true ]; then
+    ipfile="ip.txt"
+    atype="A"
+else
+    ipfile="ipv6.txt"
+    atype="AAAA"
+fi
 
 arch=$(uname -m)
 # Map architecture names
@@ -45,51 +54,48 @@ case ${arch} in
         ;;
 esac
 
-# install cloudflareST
-cf_url="https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download/CloudflareST_linux_${cf_arch}.tar.gz"
-curl -sLo "$pdir/cloudflaredST.tar.gz" "$cf_url"
-# 解压cloudflaredST.tar.gz文件
-mkdir -p "$pdir/CF"
-tar -xzf "$pdir/cloudflaredST.tar.gz" -C "$pdir/CF"
-# 赋予执行权限
-chmod +x "$pdir/CF/CloudflareST"
-echo ""
+if [ ! -f "$pdir/CF/CloudflareST" ]; then
+    echo "CloudflareST 不存在，开始下载，如果下载不动，手动下载解压到$pdir/CF/文件夹下."
+    # install cloudflareST
+    cf_url="https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download/CloudflareST_linux_${cf_arch}.tar.gz"
+    curl -sLo "$pdir/cloudflaredST.tar.gz" "$cf_url"
+    # 解压cloudflaredST.tar.gz文件
+    mkdir -p "$pdir/CF"
+    tar -xzf "$pdir/cloudflaredST.tar.gz" -C "$pdir/CF"
+    # 赋予执行权限
+    chmod +x "$pdir/CF/CloudflareST"
+else
+    # 如果文件存在，则跳过这段代码
+    echo "CloudflareST 已经存在，开始测速."
+fi
 
-# 获取DOMAINS数组的长度
+
 domain_count=${#DOMAINS[@]}
 
-# 定位到CF目录
 cd "$pdir/CF"
-# 执行CloudflareST命令，参考：https://github.com/XIU2/CloudflareSpeedTest
-"$pdir/CF/CloudflareST" -p $domain_count -n 1000 -f "$pdir/CF/ip.txt"
-# 将结果保存为数组
+"$pdir/CF/CloudflareST" -p $domain_count -n 1000 -f "$pdir/CF/$ipfile" -url $urltest
 bestips=($(awk -F ',' 'NR>1 {print $1}' "$pdir/CF/result.csv" | head -n ${#DOMAINS[@]}))
 
-# 循环处理每个域名
 for ((i=0; i<${#DOMAINS[@]}; i++)); do
     domain="${DOMAINS[$i]}"
     bestip="${bestips[$i]}"
-    
-    # 获取记录信息
-    record_info=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=A&name=$domain" \
+    record_info=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=$Atype&name=$domain" \
         -H "X-Auth-Email: $API_EMAIL" \
         -H "X-Auth-Key: $API_KEY" \
         -H "Content-Type: application/json")
-    record_id=$(echo "$record_info" | grep -oP '(?<="id":")[^"]+' | head -1)
+    #echo "$record_info"
+    record_id=$(echo "$record_info" | awk -F '"id":"' '{print $2}' | awk -F '","' '{print $1}')
     
     if [ -z "$record_id" ]; then
         echo "无法提取记录ID for 域名 $domain"
     else
         echo "域名 $domain 的RECORD NAME为 $record_id"
-        # 更新DNS记录
         update_result=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$record_id" \
             -H "X-Auth-Email: $API_EMAIL" \
             -H "X-Auth-Key: $API_KEY" \
             -H "Content-Type: application/json" \
-            --data '{"type":"A","name":"'"$domain"'","content":"'"$bestip"'","ttl":1,"proxied":false}')
+            --data '{"type":"'"$atype"'","name":"'"$domain"'","content":"'"$bestip"'","ttl":1,"proxied":false}')
         echo "域名 $domain 的DNS记录已更新为IP地址 $bestip"
+
     fi
 done
-
-
-
