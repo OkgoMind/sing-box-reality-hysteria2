@@ -658,9 +658,9 @@ modify_singbox() {
     # modifying hysteria2 configuration
     show_notice "开始修改hysteria2端口号"
     echo ""
-    hy_port=$(grep -o "HY_PORT='[^']*'" /root/sbox/config | awk -F"'" '{print $2}')
-    read -p "请属于想要修改的端口号 (当前端口号为 $hy_port): " hy_port
-    hy_port=${hy_port:-$hy_port}
+    hy_current_port=$(grep -o "HY_PORT='[^']*'" /root/sbox/config | awk -F"'" '{print $2}')
+    read -p "请属于想要修改的端口号 (当前端口号为 $hy_current_port): " hy_port
+    hy_port=${hy_port:-$hy_current_port}
 
     # 修改sing-box
     sed -i -e "/\"listen_port\":/{N; s/\"[0-9]*\"/\"$hy_port\"/}" \
