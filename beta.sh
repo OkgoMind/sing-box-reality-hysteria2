@@ -649,8 +649,18 @@ modify_singbox() {
     #modifying reality configuration
     show_notice "开始修改reality端口号和域名"
     reality_current_port=$(grep -o "REALITY_PORT='[^']*'" /root/sbox/config | awk -F"'" '{print $2}')
-    read -p "请输入想要修改的端口号 (当前端口号为 $reality_current_port): " reality_port
-    reality_port=${reality_port:-$reality_current_port}
+    while true; do
+        read -p "请输入想要修改的端口号 (当前端口号为 $reality_current_port): " reality_port
+        reality_port=${reality_port:-$reality_current_port}
+        if [ "$reality_port" -eq "$reality_current_port" ]; then
+            break
+        fi
+        if ss -tuln | grep -q ":$reality_port\b"; then
+            echo "端口 $reality_port 已经被占用，请选择其他端口。"
+        else
+            break
+        fi
+    done
     reality_current_server_name=$(grep -o "REALITY_SERVER_NAME='[^']*'" /root/sbox/config | awk -F"'" '{print $2}')
     read -p "请输入想要偷取的域名 (当前域名为 $reality_current_server_name): " reality_server_name
     reality_server_name=${reality_server_name:-$reality_current_server_name}
@@ -659,8 +669,18 @@ modify_singbox() {
     show_notice "开始修改hysteria2端口号"
     echo ""
     hy_current_port=$(grep -o "HY_PORT='[^']*'" /root/sbox/config | awk -F"'" '{print $2}')
-    read -p "请属于想要修改的端口号 (当前端口号为 $hy_current_port): " hy_port
-    hy_port=${hy_port:-$hy_current_port}
+    while true; do
+        read -p "请输入想要修改的端口号 (当前端口号为 $hy_current_port): " hy_port
+        hy_port=${hy_port:-$hy_current_port}
+        if [ "$hy_port" -eq "$hy_current_port" ]; then
+            break
+        fi
+        if ss -tuln | grep -q ":$hy_port\b"; then
+            echo "端口 $hy_port 已经被占用，请选择其他端口。"
+        else
+            break
+        fi
+    done
 
     # 修改sing-box
     sed -i -e "/\"listen_port\":/{N; s/\"[0-9]*\"/\"$hy_port\"/}" \
@@ -801,8 +821,17 @@ short_id=$(/root/sbox/sing-box generate rand --hex 8)
 echo "uuid和短id 生成完成"
 echo ""
 # Ask for listen port
-read -p "请输入Reality端口号 (default: 443): " reality_port
-reality_port=${reality_port:-443}
+while true; do
+    read -p "请输入Reality端口号 (default: 443): " reality_port
+    reality_port=${reality_port:-443}
+
+    # 检测端口是否被占用
+    if ss -tuln | grep -q ":$reality_port\b"; then
+        echo "端口 $reality_port 已经被占用，请重新输入。"
+    else
+        break
+    fi
+done
 echo ""
 # Ask for server name (sni)
 read -p "请输入想要偷取的域名,需要支持tls1.3 (default: itunes.apple.com): " reality_server_name
@@ -817,8 +846,17 @@ hy_password=$(/root/sbox/sing-box generate rand --hex 8)
 echo "自动生成了8位随机密码"
 echo ""
 # Ask for listen port
-read -p "请输入hysteria2监听端口 (default: 8443): " hy_port
-hy_port=${hy_port:-8443}
+while true; do
+    read -p "请输入hysteria2监听端口 (default: 8443): " hy_port
+    hy_port=${hy_port:-8443}
+
+    # 检测端口是否被占用
+    if ss -tuln | grep -q ":$hy_port\b"; then
+        echo "端口 $hy_port 已经被占用，请选择其他端口。"
+    else
+        break
+    fi
+done
 echo ""
 
 # Ask for self-signed certificate domain
@@ -834,8 +872,17 @@ yellow "开始配置vmess"
 echo ""
 # Generate hysteria necessary values
 vmess_uuid=$(/root/sbox/sing-box generate uuid)
-read -p "请输入vmess端口，默认为18443(和tunnel通信用不会暴露在外): " vmess_port
-vmess_port=${vmess_port:-18443}
+while true; do
+    read -p "请输入vmess端口，默认为18443(和tunnel通信用不会暴露在外): " vmess_port
+    vmess_port=${vmess_port:-18443}
+
+    # 检测端口是否被占用
+    if ss -tuln | grep -q ":$vmess_port\b"; then
+        echo "端口 $vmess_port 已经被占用，请选择其他端口。"
+    else
+        break
+    fi
+done
 echo ""
 read -p "ws路径 (无需加斜杠,默认随机生成): " ws_path
 ws_path=${ws_path:-$(/root/sbox/sing-box generate rand --hex 6)}
